@@ -10,8 +10,9 @@ from Levenshtein import distance as levenshtein_distance
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV
-from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score
+from sklearn.neural_network import MLPClassifier
+# from imblearn.over_sampling import SMOTE, ADASYN # TODO: fix imbalanced data
+from sklearn.metrics import accuracy_score, f1_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import Normalizer
 from sklearn.preprocessing import StandardScaler
@@ -23,7 +24,7 @@ DATA_DEV_PATH='../data/dev_with_label.txt'                                      
 DATA_TEST_PATH='../data/test_without_label.txt'                                                                                            # test set
 TMP_DIR = '../tmp'                                                                                                                         # temporary directory to store processed dataframes
 TEST_PRED_FILE = '../BenjaminScuron_test_result.txt'                                                                                       # text file that stores the predicted values of the test set
-FEATURE_COLUMNS = ['LEVENSHTEIN_DIST', 'COSINE_SIMILARITY', 'LENGTH_DIFFERENCE', 'SHARED_WORDS', 'SHARED_POS', 'NIST_SCORE', 'BLEU_SCORE'] # features used in the SVC/SVM model
+FEATURE_COLUMNS = ['LEVENSHTEIN_DIST', 'COSINE_SIMILARITY', 'LENGTH_DIFFERENCE', 'SHARED_WORDS', 'SHARED_POS', 'NIST_SCORE'] # features used in the MLP model
 
 def main():
     print('Reading, cleaning, extracting features...')
@@ -41,16 +42,18 @@ def main():
     print(data_test[FEATURE_COLUMNS])
 
     # Create model and fit to training data
-    print('Creating SVM model...')
-    clf = make_pipeline(StandardScaler(), SVC(C=10000, class_weight='balanced', kernel='linear'))
+    print('Creating MLP model...')
+    # clf = make_pipeline(StandardScaler(), MLPClassifier(random_state=1, max_iter=300)) # TODO: scale
+    clf = MLPClassifier(random_state=1, max_iter=300)
     print('Fitting model to training data...')
     clf.fit(data_train[FEATURE_COLUMNS], data_train['GROUND_TRUTH'])
 
     # Compute accuracy on dev
     print('Making predictions on DEV set...')
     y_dev_pred = clf.predict(data_dev[FEATURE_COLUMNS])
-    print('Computing DEV accuracy...')
+    print('Computing DEV accuracy and f1 score...')
     print('DEV ACCURACY:', accuracy_score(data_dev['GROUND_TRUTH'], y_dev_pred))
+    print('DEV F1 SCORE:', f1_score(data_dev['GROUND_TRUTH'], y_dev_pred))
 
     # Make predictions on test data and output the test data
     print('Making predictions on TEST set...')
@@ -93,7 +96,7 @@ def extract_features(df):
     # df['JACCARD_SIMILARITY'] = get_jaccard_similarity(df)
     df['SHARED_POS'] = get_shared_pos(df)
     df['NIST_SCORE'] = get_nist_score(df)
-    df['BLEU_SCORE'] = get_bleu_score(df)
+    # df['BLEU_SCORE'] = get_bleu_score(df)
     return df
 
 # Calculates the nist score for each sentence. The average of the two scores are taken (s1 as reference, s2 as hypothesis & s2 as reference, s1 as hypothesis)
