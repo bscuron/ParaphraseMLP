@@ -48,8 +48,8 @@ def main():
     
     # Create model and fit to training data
     print('Creating MLP model...')
-    # clf = make_pipeline(StandardScaler(), MLPClassifier(random_state=1, max_iter=300)) # TODO: scale
-    clf = MLPClassifier(random_state=1, max_iter=300)
+    clf = make_pipeline(StandardScaler(), MLPClassifier(random_state=1, max_iter=300)) # TODO: scale
+    # clf = MLPClassifier(random_state=1, max_iter=300)
     print('Fitting model to training data...')
     clf.fit(X_train, y_train)
 
