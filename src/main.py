@@ -11,7 +11,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV
 from sklearn.neural_network import MLPClassifier
-# from imblearn.over_sampling import SMOTE, ADASYN # TODO: fix imbalanced data
+from imblearn.over_sampling import SMOTE
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import Normalizer
@@ -25,6 +25,7 @@ DATA_TEST_PATH='../data/test_without_label.txt'                                 
 TMP_DIR = '../tmp'                                                                                                                         # temporary directory to store processed dataframes
 TEST_PRED_FILE = '../BenjaminScuron_test_result.txt'                                                                                       # text file that stores the predicted values of the test set
 FEATURE_COLUMNS = ['LEVENSHTEIN_DIST', 'COSINE_SIMILARITY', 'LENGTH_DIFFERENCE', 'SHARED_WORDS', 'SHARED_POS', 'NIST_SCORE'] # features used in the MLP model
+# FEATURE_COLUMNS = ['LEVENSHTEIN_DIST', 'LENGTH_DIFFERENCE', 'COSINE_SIMILARITY', 'SHARED_WORDS', 'RATIO', 'PARTIAL_RATIO', 'TOKEN_SORT_RATIO', 'TOKEN_SET_RATIO', 'RATCLIFF_OBERSHELP', 'JACCARD_SIMILARITY', 'SHARED_POS', 'NIST_SCORE']
 
 def main():
     print('Reading, cleaning, extracting features...')
@@ -41,12 +42,16 @@ def main():
     print(data_dev[FEATURE_COLUMNS + ['GROUND_TRUTH']])
     print(data_test[FEATURE_COLUMNS])
 
+    # Over-sample
+    X_train, y_train = data_train[FEATURE_COLUMNS], data_train['GROUND_TRUTH']
+    X_train, y_train = SMOTE().fit_resample(X_train, y_train) 
+    
     # Create model and fit to training data
     print('Creating MLP model...')
     # clf = make_pipeline(StandardScaler(), MLPClassifier(random_state=1, max_iter=300)) # TODO: scale
     clf = MLPClassifier(random_state=1, max_iter=300)
     print('Fitting model to training data...')
-    clf.fit(data_train[FEATURE_COLUMNS], data_train['GROUND_TRUTH'])
+    clf.fit(X_train, y_train)
 
     # Compute accuracy on dev
     print('Making predictions on DEV set...')
@@ -88,12 +93,12 @@ def extract_features(df):
     df['LENGTH_DIFFERENCE'] = get_length_difference(df)
     df['COSINE_SIMILARITY'] = get_cosine_similarity(df)
     df['SHARED_WORDS'] = get_shared_words(df)
-    # df['RATIO'] = get_ratios(df)
-    # df['PARTIAL_RATIO'] = get_partial_ratios(df)
-    # df['TOKEN_SORT_RATIO'] = get_token_sort_ratios(df)
-    # df['TOKEN_SET_RATIO'] = get_token_set_ratios(df)
-    # df['RATCLIFF_OBERSHELP'] = get_ratcliff_obershelp(df)
-    # df['JACCARD_SIMILARITY'] = get_jaccard_similarity(df)
+    df['RATIO'] = get_ratios(df)
+    df['PARTIAL_RATIO'] = get_partial_ratios(df)
+    df['TOKEN_SORT_RATIO'] = get_token_sort_ratios(df)
+    df['TOKEN_SET_RATIO'] = get_token_set_ratios(df)
+    df['RATCLIFF_OBERSHELP'] = get_ratcliff_obershelp(df)
+    df['JACCARD_SIMILARITY'] = get_jaccard_similarity(df)
     df['SHARED_POS'] = get_shared_pos(df)
     df['NIST_SCORE'] = get_nist_score(df)
     # df['BLEU_SCORE'] = get_bleu_score(df)
