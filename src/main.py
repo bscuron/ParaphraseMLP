@@ -25,7 +25,6 @@ DATA_TEST_PATH='../data/test_without_label.txt'                                 
 TMP_DIR = '../tmp'                                                                                                                         # temporary directory to store processed dataframes
 TEST_PRED_FILE = '../BenjaminScuron_test_result.txt'                                                                                       # text file that stores the predicted values of the test set
 FEATURE_COLUMNS = ['LEVENSHTEIN_DIST', 'COSINE_SIMILARITY', 'LENGTH_DIFFERENCE', 'SHARED_WORDS', 'SHARED_POS', 'NIST_SCORE'] # features used in the MLP model
-# FEATURE_COLUMNS = ['LEVENSHTEIN_DIST', 'LENGTH_DIFFERENCE', 'COSINE_SIMILARITY', 'SHARED_WORDS', 'RATIO', 'PARTIAL_RATIO', 'TOKEN_SORT_RATIO', 'TOKEN_SET_RATIO', 'RATCLIFF_OBERSHELP', 'JACCARD_SIMILARITY', 'SHARED_POS', 'NIST_SCORE']
 
 def main():
     print('Reading, cleaning, extracting features...')
@@ -44,12 +43,12 @@ def main():
 
     # Over-sample
     X_train, y_train = data_train[FEATURE_COLUMNS], data_train['GROUND_TRUTH']
-    X_train, y_train = SMOTE().fit_resample(X_train, y_train) 
-    
+    X_train, y_train = SMOTE().fit_resample(X_train, y_train)
+
     # Create model and fit to training data
     print('Creating MLP model...')
-    clf = make_pipeline(StandardScaler(), MLPClassifier(random_state=1, max_iter=300)) # TODO: scale
-    # clf = MLPClassifier(random_state=1, max_iter=300)
+    clf = make_pipeline(StandardScaler(), MLPClassifier(random_state=1, max_iter=300, hidden_layer_sizes=(100,))) # TODO: scale
+
     print('Fitting model to training data...')
     clf.fit(X_train, y_train)
 
