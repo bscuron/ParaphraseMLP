@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 import numpy as np
 import ssl
 from nltk import download, word_tokenize, pos_tag
@@ -19,11 +20,12 @@ from sklearn.preprocessing import StandardScaler
 from thefuzz.fuzz import ratio, partial_ratio, token_sort_ratio, token_set_ratio
 from difflib import SequenceMatcher
 
-DATA_TRAIN_PATH='../data/train_with_label.txt'                                                                                             # training set
-DATA_DEV_PATH='../data/dev_with_label.txt'                                                                                                 # dev set
-DATA_TEST_PATH='../data/test_without_label.txt'                                                                                            # test set
-TMP_DIR = '../tmp'                                                                                                                         # temporary directory to store processed dataframes
-TEST_PRED_FILE = '../BenjaminScuron_test_result.txt'                                                                                       # text file that stores the predicted values of the test set
+DATA_TRAIN_PATH='../data/train_with_label.txt'                                                                               # training set
+DATA_DEV_PATH='../data/dev_with_label.txt'                                                                                   # dev set
+DATA_TEST_PATH='../data/test_without_label.txt'                                                                              # test set
+TMP_DIR = '../tmp'                                                                                                           # temporary directory to store processed dataframes
+CACHE_DIR = '../cache'
+TEST_PRED_FILE = '../BenjaminScuron_test_result.txt'                                                                         # text file that stores the predicted values of the test set
 FEATURE_COLUMNS = ['LEVENSHTEIN_DIST', 'COSINE_SIMILARITY', 'LENGTH_DIFFERENCE', 'SHARED_WORDS', 'SHARED_POS', 'NIST_SCORE'] # features used in the MLP model
 
 def main():
@@ -32,6 +34,8 @@ def main():
 
     # dump dataframes
     print(f'Dumping dataframes to `{TMP_DIR}`...')
+    if not os.path.exists(TMP_DIR):
+        os.makedirs(TMP_DIR)
     data_train.to_csv(f'{TMP_DIR}/data_train_processed.csv')
     data_dev.to_csv(f'{TMP_DIR}/data_dev_processed.csv')
     data_test.to_csv(f'{TMP_DIR}/data_test_processed.csv')
@@ -47,7 +51,7 @@ def main():
 
     # Create model and fit to training data
     print('Creating MLP model...')
-    clf = make_pipeline(StandardScaler(), MLPClassifier(random_state=1, max_iter=300, hidden_layer_sizes=(100,))) # TODO: scale
+    clf = make_pipeline(StandardScaler(), MLPClassifier(verbose=True, random_state=1, max_iter=300, hidden_layer_sizes=(100,))) # TODO: scale
 
     print('Fitting model to training data...')
     clf.fit(X_train, y_train)
@@ -71,10 +75,22 @@ def main():
 
 # Read and clean the train set, dev set, and test set. Return each in a tuple in the order (train, dev, test)
 def get_data():
+
+    # Prompt user to use cached features if they exists
+    if os.path.exists(f'{CACHE_DIR}/data_train_cached.pkl') and os.path.exists(f'{CACHE_DIR}/data_dev_cached.pkl') and os.path.exists(f'{CACHE_DIR}/data_test_cached.pkl') and input('Use cached features? (y/n) > ').lower() == 'y':
+        return pd.read_pickle(f'{CACHE_DIR}/data_train_cached.pkl'), pd.read_pickle(f'{CACHE_DIR}/data_dev_cached.pkl'), pd.read_pickle(f'{CACHE_DIR}/data_test_cached.pkl')
+
     delimiter, column_names = '\t+', ['ID', 'SENTENCE_1', 'SENTENCE_2', 'GROUND_TRUTH']
     data_train = extract_features(clean(pd.read_csv(DATA_TRAIN_PATH, sep=delimiter, engine='python', names=column_names)))
     data_dev = extract_features(clean(pd.read_csv(DATA_DEV_PATH, sep=delimiter, engine='python', names=column_names)))
     data_test = extract_features(clean(pd.read_csv(DATA_TEST_PATH, sep=delimiter, engine='python', names=column_names[:-1])))
+
+    # Cache dataframes
+    if not os.path.exists(CACHE_DIR):
+        os.makedirs(CACHE_DIR)
+    data_train.to_pickle(f'{CACHE_DIR}/data_train_cached.pkl')
+    data_dev.to_pickle(f'{CACHE_DIR}/data_dev_cached.pkl')
+    data_test.to_pickle(f'{CACHE_DIR}/data_test_cached.pkl')
     return data_train, data_dev, data_test
 
 # Cleans the text data in columns 'SENTENCE_1' and 'SENTENCE_2'
