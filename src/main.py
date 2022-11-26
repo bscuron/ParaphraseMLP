@@ -45,28 +45,37 @@ def main():
     print(data_dev[FEATURE_COLUMNS + ['GROUND_TRUTH']])
     print(data_test[FEATURE_COLUMNS])
 
-    # Over-sample
+    # Get features and labels for training set
     X_train, y_train = data_train[FEATURE_COLUMNS], data_train['GROUND_TRUTH']
+
+    # Standardize training features
+    X_train = StandardScaler().fit_transform(X_train)
+
+    # Over-sample
     X_train, y_train = SMOTE().fit_resample(X_train, y_train)
 
     # Create model and fit to training data
     print('Creating MLP model...')
-    clf = make_pipeline(StandardScaler(), MLPClassifier(verbose=True, random_state=1, max_iter=300, hidden_layer_sizes=(100,))) # TODO: scale
-
-    print('Fitting model to training data...')
+    clf = MLPClassifier(verbose=True)
     clf.fit(X_train, y_train)
+
+    # Standardize dev features
+    X_dev = StandardScaler().fit_transform(data_dev[FEATURE_COLUMNS])
 
     # Compute accuracy on dev
     print('Making predictions on DEV set...')
-    y_dev_pred = clf.predict(data_dev[FEATURE_COLUMNS])
+    y_dev_pred = clf.predict(X_dev)
     print('Computing DEV accuracy and f1 score...')
     print('DEV ACCURACY:', accuracy_score(data_dev['GROUND_TRUTH'], y_dev_pred))
     print('DEV F1 SCORE:', f1_score(data_dev['GROUND_TRUTH'], y_dev_pred))
 
+    # Standardize test features
+    X_test = StandardScaler().fit_transform(data_test[FEATURE_COLUMNS])
+
     # Make predictions on test data and output the test data
     print('Making predictions on TEST set...')
     y_test_labels = data_test['ID']
-    y_test_pred = clf.predict(data_test[FEATURE_COLUMNS])
+    y_test_pred = clf.predict(X_test)
     print(f'Writing predictions to `{TEST_PRED_FILE}`')
     with open(f'{TEST_PRED_FILE}', 'w') as f:
         for id, label in zip(y_test_labels, y_test_pred):
@@ -76,8 +85,8 @@ def main():
 # Read and clean the train set, dev set, and test set. Return each in a tuple in the order (train, dev, test)
 def get_data():
 
-    # Prompt user to use cached features if they exists
-    if os.path.exists(f'{CACHE_DIR}/data_train_cached.pkl') and os.path.exists(f'{CACHE_DIR}/data_dev_cached.pkl') and os.path.exists(f'{CACHE_DIR}/data_test_cached.pkl') and input('Use cached features? (y/n) > ').lower() == 'y':
+    # Use cached features if they exist (if you want to recompute features, delete the 'cache' dir in the root directory ../cache)
+    if os.path.exists(f'{CACHE_DIR}/data_train_cached.pkl') and os.path.exists(f'{CACHE_DIR}/data_dev_cached.pkl') and os.path.exists(f'{CACHE_DIR}/data_test_cached.pkl'):
         return pd.read_pickle(f'{CACHE_DIR}/data_train_cached.pkl'), pd.read_pickle(f'{CACHE_DIR}/data_dev_cached.pkl'), pd.read_pickle(f'{CACHE_DIR}/data_test_cached.pkl')
 
     delimiter, column_names = '\t+', ['ID', 'SENTENCE_1', 'SENTENCE_2', 'GROUND_TRUTH']
