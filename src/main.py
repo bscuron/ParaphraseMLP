@@ -56,7 +56,7 @@ def main():
 
     # Create model and fit to training data
     print('Creating MLP model...')
-    clf = MLPClassifier(verbose=True)
+    clf = MLPClassifier(verbose=True, max_iter=1000)
     clf.fit(X_train, y_train)
 
     # Standardize dev features
