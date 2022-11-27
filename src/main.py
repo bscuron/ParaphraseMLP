@@ -50,9 +50,11 @@ def main():
 
     # Standardize training features
     X_train = StandardScaler().fit_transform(X_train)
+    print(f'Length of training set before oversampling: {len(X_train)}')
 
     # Over-sample
-    X_train, y_train = SMOTE().fit_resample(X_train, y_train)
+    X_train, y_train = SMOTE(n_jobs=-1).fit_resample(X_train, y_train)
+    print(f'Length of training set after oversampling: {len(X_train)}')
 
     # Create model and fit to training data
     print('Creating MLP model...')
